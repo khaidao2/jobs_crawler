@@ -1,0 +1,66 @@
+# =====================
+# Python
+# =====================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+venv/
+.env/
+.venv/
+ENV/
+
+# =====================
+# Jupyter / Colab
+# =====================
+.ipynb_checkpoints/
+*.ipynb~
+
+# =====================
+# Data files (raw & generated)
+# =====================
+data/
+*.json
+*.csv
+*.parquet
+
+# Nếu muốn giữ thư mục data nhưng ignore file bên trong:
+# data/*
+# !data/.gitkeep
+
+# =====================
+# Logs & temp
+# =====================
+*.log
+*.tmp
+*.bak
+*.swp
+
+# =====================
+# OS files
+# =====================
+.DS_Store
+Thumbs.db
+
+# =====================
+# IDE
+# =====================
+.vscode/
+.idea/
+*.code-workspace
+
+# =====================
+# Colab / Google Drive cache
+# =====================
+content/
+drive/
+
+# =====================
+# Build / export
+# =====================
+dist/
+build/
+*.egg-info/
