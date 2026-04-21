@@ -79,3 +79,4 @@ volumes/
 #Parquet
 # =====================
 *.parquet
+.env
