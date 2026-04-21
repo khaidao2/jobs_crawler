@@ -1,0 +1,7 @@
+# Fill this file when crawler code is added.
+beautifulsoup4
+curl_cffi
+pandas
+pyarrow
+fastavro
+lxml

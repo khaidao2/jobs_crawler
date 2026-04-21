@@ -1,0 +1,28 @@
+{
+  "type": "record",
+  "name": "TopCVJob",
+  "namespace": "com.jobs_crawler",
+  "fields": [
+    { "name": "job_id", "type": "string" },
+    { "name": "title", "type": "string" },
+    { "name": "company", "type": "string" },
+    { "name": "url", "type": ["null", "string"], "default": null },
+    { "name": "company_url", "type": ["null", "string"], "default": null },
+    { "name": "logo_url", "type": ["null", "string"], "default": null },
+    { "name": "salary", "type": ["null", "string"], "default": null },
+    { "name": "location", "type": ["null", "string"], "default": null },
+    { "name": "experience", "type": ["null", "string"], "default": null },
+    { "name": "tags", "type": {"type": "array", "items": "string"}, "default": [] },
+    { "name": "updated_at", "type": ["null", "string"], "default": null },
+    { "name": "posted_at", "type": ["null", "string"], "default": null },
+    { "name": "is_urgent", "type": "boolean", "default": false },
+    { "name": "is_highlight", "type": "boolean", "default": false },
+    { "name": "is_flash", "type": "boolean", "default": false },
+    { "name": "company_verified", "type": "boolean", "default": false },
+    { "name": "job_description", "type": ["null", "string"], "default": null },
+    { "name": "job_requirement", "type": ["null", "string"], "default": null },
+    { "name": "job_benefit", "type": ["null", "string"], "default": null },
+    { "name": "deadline", "type": ["null", "string"], "default": null },
+    { "name": "working_times", "type": {"type": "array", "items": "string"}, "default": [] }
+  ]
+}
