@@ -1,7 +1,11 @@
-# Fill this file when crawler code is added.
 beautifulsoup4
 curl_cffi
 pandas
 pyarrow
 fastavro
 lxml
+confluent-kafka
+httpx
+authlib
+joserfc
+confluent-kafka[avro]
