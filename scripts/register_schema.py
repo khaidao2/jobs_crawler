@@ -7,7 +7,7 @@ from confluent_kafka.schema_registry.avro import AvroSerializer
 
 
 BOOTSTRAP_SERVERS = "localhost:9092"
-SCHEMA_REGISTRY_URL = "http://localhost:8081"
+SCHEMA_REGISTRY_URL = "http://localhost:8085/ccompat"
 
 SCHEMA_DIR = Path(__file__).parent.parent / "schemas/raw"
 
