@@ -69,8 +69,8 @@ class KafkaProducer:
             on_delivery = self._on_delivery,
         )
         self._producer.poll(0)
-    def flush(self):
-        remaining = self._producer.flush(30)
+    def flush(self, timeout: float = 30.0):
+        remaining = self._producer.flush(timeout)
         if remaining > 0:
             _logger.warning("%d messages not delivered", remaining)
  

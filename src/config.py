@@ -26,4 +26,6 @@ SCHEMA_REGISTRY_CONFIG = {
     "url": SCHEMA_REGISTRY_URL,
 }
 
-SCHEMA_PATH = os.getenv("SCHEMA_PATH", "/app/schemas/job_listing.avsc")
+SCHEMA_PATH = os.getenv("SCHEMA_PATH", "schemas/raw/job_listing.avsc")
+
+KAFKA_TOPIC="Jobs"

@@ -1,14 +1,23 @@
 """Pure parse functions for TopCV (topcv.vn)."""
 
 from __future__ import annotations
+from asyncio.log import logger
 
-import hashlib
-import re
+
 import os
+import sys
 import time
-import json
 import asyncio
 from typing import Any
+import logging
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+
+import pandas as pd
+from curl_cffi.requests import AsyncSession
+
+from config import KAFKA_TOPIC, SCHEMA_PATH
+from .sink import KafkaSink
 
 from bs4 import BeautifulSoup
 try:
@@ -23,6 +32,7 @@ DEFAULT_CATEGORIES: list[dict[str, str]] = [
 ]
 
 _CARD_SEL = "div.job-item-search-result"
+_LOG = logging.getLogger(__name__)
 
 
 class TopCVCrawler(BaseCrawler):
@@ -36,9 +46,7 @@ class TopCVCrawler(BaseCrawler):
     def _clean_detail_html(self, content_div: Any) -> str | None:
         if not content_div:
             return None
-        # Use newline separator to preserve vertical bullet points
         text = content_div.get_text(separator="\n", strip=True)
-        # Clean whitespace aggressively per line
         lines = [ " ".join(line.replace("\xa0", " ").replace("\r", " ").split()) for line in text.split("\n") ]
         cleaned = "\n".join([line for line in lines if line])
         return cleaned if cleaned else None
@@ -147,7 +155,6 @@ class TopCVCrawler(BaseCrawler):
         page_number = kwargs.get("page_number", 1)
         crawled_at = kwargs.get("crawled_at", int(time.time()))
 
-        # Fallback to html.parser if lxml isn't installed yet
         try:
             soup = BeautifulSoup(html, "lxml")
         except Exception:
@@ -213,38 +220,58 @@ def resolve_categories(override: str | None) -> list[dict[str, str]]:
 
 
 if __name__ == "__main__":
-    import pandas as pd
-    from curl_cffi.requests import AsyncSession
+    import argparse
 
-    async def run_async_test():
-        print("Starting Async Test Crawl for TopCV...")
+    async def run_crawl(max_pages_per_cat: int = 5):
+        _LOG.info("Starting TopCV Crawler...")
         crawler = TopCVCrawler()
-        slug = "tim-viec-lam-cong-nghe-thong-tin-cr257?type_keyword=1&category_family=r257&saturday_status=0"
         crawled_at = int(time.time())
+        sink = KafkaSink(topic=KAFKA_TOPIC, schema_path=SCHEMA_PATH)
         
-        async with AsyncSession(impersonate="chrome120") as session:
-            # 1. Fetch Page 1
-            print("Fetching Page 1...")
-            jobs = await crawler.fetch_listing(
-                session, slug, page=1, category="it", crawled_at=crawled_at
-            )
-            print(f"Found {len(jobs)} jobs. Fetching details concurrently...")
-            
-            # 2. Fetch Details Concurrently
-            tasks = [crawler.fetch_detail_and_merge(session, j) for j in jobs]
-            final_jobs = await asyncio.gather(*tasks)
+        categories = resolve_categories(None)
+        
+        try:
+            async with AsyncSession(impersonate="chrome120") as session:
+                for cat in categories:
+                    slug = cat["slug"]
+                    cat_label = cat["label"]
+                    _LOG.info(f"Crawling category: {cat_label}")
+                    
+                    for page in range(1, max_pages_per_cat + 1):
+                        _LOG.info(f"Fetching {cat_label} - Page {page}...")
+                        jobs = await crawler.fetch_listing(
+                            session, slug, page=page, category=cat_label, crawled_at=crawled_at
+                        )
+                        
+                        if not jobs:
+                            _LOG.info(f"No more jobs found on page {page}. Moving to next category.")
+                            break
+                            
+                        _LOG.info(f"Found {len(jobs)} jobs. Fetching details concurrently...")
+                        tasks = [crawler.fetch_detail_and_merge(session, j) for j in jobs]
+                        final_jobs = await asyncio.gather(*tasks)
+                        
+                        published_count = 0
+                        for job in final_jobs:
+                            sink.emit(job, job["job_id"])
+                            published_count += 1
+                        
+                        _LOG.info(f"Published {published_count} jobs to Kafka from Page {page}.")
+                        
+                        # Small delay between pages to be polite
+                        await asyncio.sleep(1)
+                        
+        except Exception as e:
+            _LOG.error(f"Failed to crawl jobs: {e}", exc_info=True)
+        finally:
+            _LOG.info("Flushing data to Kafka and shutting down...")
+            sink.flush()
+            sink.close()
+            _LOG.info("Crawl completed.")
 
-        if final_jobs:
-            print("\n" + "="*50)
-            print("SAMPLE JOB EXTRACTED:")
-            print("="*50)
-            print(json.dumps(final_jobs[0], indent=2, ensure_ascii=False))
-            print("="*50 + "\n")
-            
-            # Save parquet
-            out_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../topcv_jobs.parquet"))
-            df = pd.DataFrame(final_jobs)
-            df.to_parquet(out_path, index=False)
-            print(f"Successfully saved {len(final_jobs)} jobs to {out_path} at lightning speed!")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--max-pages", type=int, default=5, help="Max pages per category to crawl")
+    args = parser.parse_args()
 
-    asyncio.run(run_async_test())
+    asyncio.run(run_crawl(max_pages_per_cat=args.max_pages))
+
