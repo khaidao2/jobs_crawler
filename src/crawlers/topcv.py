@@ -28,7 +28,7 @@ except (ImportError, ValueError):
 _BASE_URL = "https://www.topcv.vn"
 
 DEFAULT_CATEGORIES: list[dict[str, str]] = [
-    {"slug": "tim-viec-lam-cong-nghe-thong-tin-cr257", "label": "Việc làm Công nghệ thông tin"},
+    {"slug": "tim-viec-lam-cong-nghe-thong-tin-cr257?type_keyword=1&category_family=r257&saturday_status=0", "label": "Việc làm Công nghệ thông tin"},
 ]
 
 _CARD_SEL = "div.job-item-search-result"
@@ -223,6 +223,7 @@ if __name__ == "__main__":
     import argparse
 
     async def run_crawl(max_pages_per_cat: int = 5):
+        import random
         _LOG.info("Starting TopCV Crawler...")
         crawler = TopCVCrawler()
         crawled_at = int(time.time())
@@ -247,9 +248,15 @@ if __name__ == "__main__":
                             _LOG.info(f"No more jobs found on page {page}. Moving to next category.")
                             break
                             
-                        _LOG.info(f"Found {len(jobs)} jobs. Fetching details concurrently...")
+                        _LOG.info(f"Found {len(jobs)} jobs. Fetching details concurrently in chunks...")
                         tasks = [crawler.fetch_detail_and_merge(session, j) for j in jobs]
-                        final_jobs = await asyncio.gather(*tasks)
+                        
+                        final_jobs = []
+                        # Process 5 jobs at a time to avoid triggering anti-bot protections
+                        for i in range(0, len(tasks), 5):
+                            chunk = tasks[i:i+5]
+                            final_jobs.extend(await asyncio.gather(*chunk))
+                            await asyncio.sleep(random.uniform(0.5, 1.5))
                         
                         published_count = 0
                         for job in final_jobs:
@@ -258,8 +265,10 @@ if __name__ == "__main__":
                         
                         _LOG.info(f"Published {published_count} jobs to Kafka from Page {page}.")
                         
-                        # Small delay between pages to be polite
-                        await asyncio.sleep(1)
+                        # Increased random delay between pages to be polite
+                        delay = random.uniform(3.0, 7.0)
+                        _LOG.info(f"Sleeping for {delay:.1f}s before next page...")
+                        await asyncio.sleep(delay)
                         
         except Exception as e:
             _LOG.error(f"Failed to crawl jobs: {e}", exc_info=True)
