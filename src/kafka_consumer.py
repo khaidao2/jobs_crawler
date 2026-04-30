@@ -1,3 +1,6 @@
+"""
+Function: Provides the KafkaConsumer class for polling and deserializing Avro messages.
+"""
 from confluent_kafka import Consumer
 import logging
 from pathlib import Path
@@ -28,7 +31,7 @@ class KafkaConsumer:
         self._schema_registry=SchemaRegistryClient(SCHEMA_REGISTRY_CONFIG)
         self._deserializer=AvroDeserializer(self._schema_registry)
         self._ctx=SerializationContext(self.topic, MessageField.VALUE)
-        _LOGGER.info(f"Consumer reeady | topic={self.topic}")
+        _LOGGER.info(f"Consumer ready | topic={self.topic}")
     def poll_messages(self, timeout: float=1.0) -> Optional[Dict[str, Any]] :
         msg=self.consumer.poll(timeout)
         if msg is None:
@@ -40,7 +43,11 @@ class KafkaConsumer:
         value=self._deserializer(msg.value(), self._ctx)
         self.consumer.commit(asynchronous=True)
         return value
-    def commit(self, offsets: Optional[list] = None)
+    def commit(self, offsets: Optional[list] = None):
+        """Commit the message offsets.
+        Args:
+            offsets: Optional list of offsets to commit.
+        """
         if offsets:
             self.consumer.commit(offsets=offsets)
         else:
