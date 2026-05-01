@@ -29,9 +29,6 @@ logging.basicConfig(
 _logger = logging.getLogger("kafka-producer")
 
 class KafkaProducer:
-    from confluent_kafka.schema_registry import SchemaRegistryClient, Schema
-
-class KafkaProducer:
     def __init__(self, topic: str, schema_path: Path):
         try:
             self._topic = topic

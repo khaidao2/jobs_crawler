@@ -1,0 +1,16 @@
+name: 'job_lakehouse'
+version: '1.0.0'
+config-version: 2
+
+profile: 'job_lakehouse'
+
+model-paths: ["models"]
+target-path: "target"
+packages-install-path: "/home/airflow/.dbt/packages"
+
+models:
+  job_lakehouse:
+    staging:
+      materialized: view
+    marts:
+      materialized: table

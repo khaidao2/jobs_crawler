@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: stg_jobs
+    description: "Staging table for raw job postings from MinIO"
+    columns:
+      - name: job_id
+        description: "Unique identifier for the job"
+        tests:
+          - not_null
+      - name: crawled_at
+        description: "Timestamp when the job was crawled"
+        tests:
+          - not_null
+
+  - name: dim_job
+    description: "Dimension table for jobs"
+    columns:
+      - name: job_id
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_company
+    description: "Dimension table for companies"
+    columns:
+      - name: company_id
+        tests:
+          - unique
+          - not_null

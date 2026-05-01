@@ -50,7 +50,7 @@ def main():
         minio_endpoint=MINIO_ENDPOINT,
         access_key=MINIO_ACCESS_KEY,
         secret_key=MINIO_SECRET_KEY,
-        batch_size=100  # Flush to file every 100 records
+        batch_size=1  # Flush to file every record for testing
     )
 
     # 3. Generate a run ID for the sink to group batches

@@ -1,0 +1,23 @@
+FROM apache/airflow:2.8.4-python3.11
+
+USER root
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends build-essential \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+USER airflow
+
+# Set persistent dbt packages path to avoid volume mask
+ENV DBT_PACKAGES_DIR=/home/airflow/.dbt/packages
+
+COPY requirements-airflow.txt /requirements-airflow.txt
+
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r /requirements-airflow.txt
+
+# Pre-install dbt packages during build
+COPY --chown=airflow:root dbt/packages.yml /opt/airflow/dbt/packages.yml
+COPY --chown=airflow:root dbt/dbt_project.yml /opt/airflow/dbt/dbt_project.yml
+RUN /home/airflow/.local/bin/dbt deps --project-dir /opt/airflow/dbt

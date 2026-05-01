@@ -1,0 +1,19 @@
+# Crawler dependencies
+beautifulsoup4
+curl_cffi
+lxml
+pyarrow
+httpx
+
+# Data Platform dependencies
+confluent-kafka==2.3.0
+fastavro==1.9.4
+requests==2.31.0
+dbt-core==1.7.1
+dbt-duckdb==1.7.1
+duckdb==0.10.2
+pandas==2.2.2
+s3fs==2024.3.1
+
+# Fix for Airflow Google Provider conflict
+protobuf<5.0.0

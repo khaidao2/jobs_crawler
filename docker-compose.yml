@@ -181,8 +181,8 @@ services:
       - |
         airflow db migrate
         airflow users create \
-          --username ${_AIRFLOW_WWW_USER_USERNAME} \
-          --password ${_AIRFLOW_WWW_USER_PASSWORD} \
+          --username "${_AIRFLOW_WWW_USER_USERNAME}" \
+          --password "${_AIRFLOW_WWW_USER_PASSWORD}" \
           --firstname Admin --lastname User \
           --role Admin --email admin@example.com || true
     mem_limit: 512m
@@ -191,7 +191,9 @@ services:
   # AIRFLOW — SCHEDULER
   # ==============================
   airflow-scheduler:
-    image: apache/airflow:2.8.4-python3.11
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
     restart: unless-stopped
     networks:
       - data-platform
@@ -207,30 +209,26 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/airflow_metadata
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_FERNET_KEY}
       SCHEMA_REGISTRY_URL: http://apicurio:8080/apis/ccompat/v6
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      _PIP_ADDITIONAL_REQUIREMENTS: >
-        confluent-kafka==2.3.0
-        fastavro==1.9.4
-        requests==2.31.0
-        dbt-postgres==1.7.4
-        duckdb==0.10.2
-        pyiceberg==0.6.1
-        pandas==2.2.2
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./dbt:/opt/airflow/dbt
+      - ./src:/opt/airflow/src
       - ./scripts:/opt/airflow/scripts
       - ./schemas:/opt/airflow/schemas
       - ./volumes/airflow-logs:/opt/airflow/logs
     command: scheduler
-    mem_limit: 768m
+    mem_limit: 1024m
 
   # ==============================
   # AIRFLOW — WEBSERVER
   # ==============================
   airflow-webserver:
-    image: apache/airflow:2.8.4-python3.11
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
     restart: unless-stopped
     networks:
       - data-platform
@@ -242,26 +240,20 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/airflow_metadata
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_FERNET_KEY}
       SCHEMA_REGISTRY_URL: http://apicurio:8080/apis/ccompat/v6
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      _PIP_ADDITIONAL_REQUIREMENTS: >
-        confluent-kafka==2.3.0
-        fastavro==1.9.4
-        requests==2.31.0
-        dbt-postgres==1.7.4
-        duckdb==0.10.2
-        pyiceberg==0.6.1
-        pandas==2.2.2
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./dbt:/opt/airflow/dbt
+      - ./src:/opt/airflow/src
       - ./scripts:/opt/airflow/scripts
       - ./schemas:/opt/airflow/schemas
       - ./volumes/airflow-logs:/opt/airflow/logs
     ports:
       - "8082:8080"
     command: webserver
-    mem_limit: 512m
+    mem_limit: 1024m
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 20s
@@ -269,9 +261,7 @@ services:
       retries: 5
       start_period: 30s
 
-  # ==============================
-  # CRAWLER (PRODUCER SERVICE)
-  # ==============================
+
   crawler:
     build:
       context: .
@@ -289,13 +279,41 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       SCHEMA_REGISTRY_URL: http://apicurio:8080/apis/ccompat/v6
       KAFKA_TOPIC: job-listings
-      # FIX: path khớp với Dockerfile (COPY schema-registry /app/schema-registry)
       SCHEMA_PATH: /app/schemas/job_listing.avsc
     volumes:
-      # FIX: mount src/crawlers/ → /app/crawler (hot reload khi dev)
       - ./src/crawlers:/app/crawler
-      # FIX: mount schemas/ → /app/schemas
       - ./schemas:/app/schemas
       - ./scripts:/app/scripts
-    command: sleep infinity
+    entrypoint: []
+    command: python3 -m src.crawlers.topcv --max-pages 2
+    mem_limit: 256m
+
+  kafka-consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    restart: always
+    entrypoint: []
+    networks:
+      - data-platform
+    depends_on:
+      kafka:
+        condition: service_healthy
+      apicurio:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SCHEMA_REGISTRY_URL: http://apicurio:8080/apis/ccompat/v6
+      KAFKA_TOPIC: job-listings
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_USER: admin
+      MINIO_PASSWORD: changeme123
+      MINIO_BUCKET_NAME: job-postings-raw
+      PYTHONPATH: /opt/airflow
+    volumes:
+      - ./src:/opt/airflow/src
+      - ./schemas:/opt/airflow/schemas
+    command: python3 -m src.run_consumer
     mem_limit: 256m

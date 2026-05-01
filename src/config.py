@@ -3,6 +3,10 @@ config.py
 Centralized configuration for Kafka Producer and Schema Registry
 """
 import os
+from pathlib import Path
+
+# Base directory (project root)
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 KAFKA_TOPIC             = os.getenv("KAFKA_TOPIC", "job-listings")
@@ -26,9 +30,9 @@ SCHEMA_REGISTRY_CONFIG = {
     "url": SCHEMA_REGISTRY_URL,
 }
 
-SCHEMA_PATH = os.getenv("SCHEMA_PATH", "schemas/raw/job_listing.avsc")
+SCHEMA_PATH = os.getenv("SCHEMA_PATH", str(BASE_DIR / "schemas" / "raw" / "job_listing.avsc"))
 
-KAFKA_TOPIC="Jobs"
+
 
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "http://localhost:9000")
 MINIO_ACCESS_KEY = os.getenv("MINIO_USER", "admin")
