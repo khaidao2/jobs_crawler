@@ -5,9 +5,7 @@ networks:
     driver: bridge
 
 services:
-  # ==============================
-  # ZOOKEEPER
-  # ==============================
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.0
     restart: unless-stopped
@@ -25,9 +23,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # ==============================
-  # KAFKA
-  # ==============================
   kafka:
     image: confluentinc/cp-kafka:7.6.0
     restart: unless-stopped
@@ -61,9 +56,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # ==============================
-  # POSTGRES
-  # ==============================
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -85,10 +77,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  # ==============================
-  # APICURIO REGISTRY
-  # ==============================
   apicurio:
     image: apicurio/apicurio-registry-sql:2.4.3.Final
     restart: unless-stopped
@@ -113,9 +101,6 @@ services:
       retries: 5
       start_period: 20s
 
-  # ==============================
-  # KAFKA UI
-  # ==============================
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     restart: unless-stopped
@@ -134,9 +119,6 @@ services:
       - "8090:8080"
     mem_limit: 256m
 
-  # ==============================
-  # MINIO
-  # ==============================
   minio:
     image: minio/minio:latest
     restart: unless-stopped
@@ -158,9 +140,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # ==============================
-  # AIRFLOW — DB INIT
-  # ==============================
+
   airflow-init:
     image: apache/airflow:2.8.4-python3.11
     networks:
@@ -187,9 +167,6 @@ services:
           --role Admin --email admin@example.com || true
     mem_limit: 512m
 
-  # ==============================
-  # AIRFLOW — SCHEDULER
-  # ==============================
   airflow-scheduler:
     build:
       context: .
@@ -222,9 +199,6 @@ services:
     command: scheduler
     mem_limit: 1024m
 
-  # ==============================
-  # AIRFLOW — WEBSERVER
-  # ==============================
   airflow-webserver:
     build:
       context: .
@@ -265,7 +239,6 @@ services:
   crawler:
     build:
       context: .
-      # FIX: Dockerfile nằm trong src/crawlers/ (đúng với ảnh)
       dockerfile: src/crawlers/Dockerfile
     restart: "no"
     networks:
@@ -317,3 +290,29 @@ services:
       - ./schemas:/opt/airflow/schemas
     command: python3 -m src.run_consumer
     mem_limit: 256m
+
+  superset:
+    build:
+      context: .
+      dockerfile: Dockerfile.superset
+    container_name: jobs_crawler-superset
+    restart: unless-stopped
+    ports:
+      - "8089:8088"
+    networks:
+      - data-platform
+    environment:
+      SUPERSET_SECRET_KEY: "super-secret-key-for-jobs-crawler"
+      DB_PATH: /app/dbt/job_lakehouse.duckdb
+      # Ép Superset đọc thêm driver từ thư mục local
+      PYTHONPATH: /home/superset/.local/lib/python3.10/site-packages:/app/pythonpath
+    volumes:
+
+      - ./dbt:/app/dbt
+      - ./scripts/superset-init.sh:/app/superset-init.sh
+    entrypoint: ["/bin/bash", "/app/superset-init.sh"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8088/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
