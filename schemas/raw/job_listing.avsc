@@ -24,6 +24,7 @@
     { "name": "job_benefit", "type": ["null", "string"], "default": null },
     { "name": "deadline", "type": ["null", "string"], "default": null },
     { "name": "working_times", "type": {"type": "array", "items": "string"}, "default": [] },
-    { "name": "crawled_at", "type": "long", "default": 0 }
+    { "name": "crawled_at", "type": "long", "default": 0 },
+    { "name": "source", "type": "string", "default": "unknown" }
   ]
 }

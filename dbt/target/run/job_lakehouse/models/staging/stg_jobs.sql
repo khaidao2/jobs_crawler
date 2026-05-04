@@ -11,6 +11,7 @@ SELECT
     job_id::VARCHAR                         AS job_id,
     title::VARCHAR                          AS title,
     company::VARCHAR                        AS company,
+    source::VARCHAR                         AS source,
 
     -- urls
     url::VARCHAR                            AS url,

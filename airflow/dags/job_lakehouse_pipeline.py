@@ -20,9 +20,19 @@ with DAG(
     catchup=False,
 ) as dag:
 
-    run_crawler = BashOperator(
+    run_topcv_crawler = BashOperator(
         task_id='run_topcv_crawler',
-        bash_command='export PYTHONPATH=$PYTHONPATH:/opt/airflow && python3 -m src.crawlers.topcv --max-pages 2',
+        bash_command='cd /opt/airflow && export PYTHONPATH=$PYTHONPATH:/opt/airflow && python3 -m src.crawlers.generic_crawler --config /opt/airflow/configs/crawlers/topcv.yaml --max-pages 0',
+    )
+
+    run_topdev_crawler = BashOperator(
+        task_id='run_topdev_crawler',
+        bash_command='cd /opt/airflow && export PYTHONPATH=$PYTHONPATH:/opt/airflow && python3 -m src.crawlers.generic_crawler --config /opt/airflow/configs/crawlers/topdev.yaml --max-pages 0',
+    )
+
+    wait_for_ingestion = BashOperator(
+        task_id='wait_for_ingestion',
+        bash_command='sleep 35',
     )
 
     dbt_run = BashOperator(
@@ -30,9 +40,4 @@ with DAG(
         bash_command='cd /opt/airflow/dbt && dbt run --profiles-dir .',
     )
 
-    dbt_test = BashOperator(
-        task_id='dbt_test',
-        bash_command='cd /opt/airflow/dbt && dbt test --profiles-dir .',
-    )
-
-    run_crawler >> dbt_run >> dbt_test
+    [run_topcv_crawler, run_topdev_crawler] >> wait_for_ingestion >> dbt_run

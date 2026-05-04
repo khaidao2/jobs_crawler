@@ -37,12 +37,15 @@ class MinIOSink:
 
     def _build_path(self, run_id: str, timestamp: float) -> str:
         try:
+            import uuid
+            suffix = str(uuid.uuid4())[:8]
             path = (
                 f"s3://{self.bucket_name}/job_postings_raw"
                 f"/batch_date={time.strftime('%Y-%m-%d', time.localtime(timestamp))}"
                 f"/batch_hour={time.strftime('%H', time.localtime(timestamp))}"
                 f"/batch_minute={time.strftime('%M', time.localtime(timestamp))}"
-                f"/run_id={run_id}.parquet"
+                f"/batch_second={time.strftime('%S', time.localtime(timestamp))}"
+                f"/{run_id}_{suffix}.parquet"
             )
             _LOGGER.debug(f"Built path: {path}")
             return path

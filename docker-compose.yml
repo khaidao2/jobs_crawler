@@ -195,6 +195,7 @@ services:
       - ./src:/opt/airflow/src
       - ./scripts:/opt/airflow/scripts
       - ./schemas:/opt/airflow/schemas
+      - ./configs:/opt/airflow/configs
       - ./volumes/airflow-logs:/opt/airflow/logs
     command: scheduler
     mem_limit: 1024m
@@ -223,6 +224,7 @@ services:
       - ./src:/opt/airflow/src
       - ./scripts:/opt/airflow/scripts
       - ./schemas:/opt/airflow/schemas
+      - ./configs:/opt/airflow/configs
       - ./volumes/airflow-logs:/opt/airflow/logs
     ports:
       - "8082:8080"
@@ -258,7 +260,7 @@ services:
       - ./schemas:/app/schemas
       - ./scripts:/app/scripts
     entrypoint: []
-    command: python3 -m src.crawlers.topcv --max-pages 2
+    command: python3 -m src.crawlers.generic_crawler --config /app/configs/crawlers/topcv.yaml --max-pages 2
     mem_limit: 256m
 
   kafka-consumer:

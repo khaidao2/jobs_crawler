@@ -1,0 +1,52 @@
+name: "topcv"
+base_url: "https://www.topcv.vn"
+list_url_template: "https://www.topcv.vn/tim-viec-lam-cong-nghe-thong-tin-cr257?type_keyword=1&category_family=r257&saturday_status=0&page={page}"
+container_selector: ".job-item-search-result"
+
+# Anti-bot headers specific to TopCV
+headers:
+  Referer: "https://www.topcv.vn/"
+  sec-ch-ua: '"Chromium";v="120", "Google Chrome";v="120", "Not-A.Brand";v="99"'
+  sec-ch-ua-mobile: "?0"
+  sec-ch-ua-platform: '"Windows"'
+  sec-fetch-dest: "document"
+  sec-fetch-mode: "navigate"
+  sec-fetch-site: "same-origin"
+  sec-fetch-user: "?1"
+  cache-control: "max-age=0"
+
+
+fields:
+  job_id:
+    selector: null # Null means use the container itself
+    attribute: "data-job-id"
+  title:
+    selector: "h3.title span"
+    attribute: "text"
+  company:
+    selector: ".company a"
+    attribute: "text"
+  url:
+    selector: ".title a"
+    attribute: "href"
+  company_url:
+    selector: ".company a"
+    attribute: "href"
+  logo_url:
+    selector: ".avatar img"
+    attribute: "src"
+  salary:
+    selector: ".salary"
+    attribute: "text"
+  location:
+    selector: ".location"
+    attribute: "text"
+  experience:
+    selector: ".exp"
+    attribute: "text"
+  is_urgent:
+    selector: "label.is-urgent"
+    attribute: "exists"
+  company_verified:
+    selector: "span.icon-verified-employer"
+    attribute: "exists"

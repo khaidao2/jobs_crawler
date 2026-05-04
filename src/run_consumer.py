@@ -50,11 +50,14 @@ def main():
         minio_endpoint=MINIO_ENDPOINT,
         access_key=MINIO_ACCESS_KEY,
         secret_key=MINIO_SECRET_KEY,
-        batch_size=1  # Flush to file every record for testing
+        batch_size=500  # Increased for production speed
     )
 
     # 3. Generate a run ID for the sink to group batches
     current_run_id = str(uuid.uuid4())[:8]
+
+    import time
+    last_flush_time = time.time()
 
     try:
         while _running:
@@ -70,6 +73,14 @@ def main():
                     # Commit the offset to Kafka
                     consumer_client.commit()
                     _logger.info("Successfully committed batch offset to Kafka.")
+                    last_flush_time = time.time()
+            else:
+                # Idle time check: if buffer has data and hasn't been flushed for 30s
+                if len(minio_sink.buffer) > 0 and (time.time() - last_flush_time > 30):
+                    _logger.info(f"Idle timeout reached ({len(minio_sink.buffer)} records). Flushing...")
+                    minio_sink.flush()
+                    consumer_client.commit()
+                    last_flush_time = time.time()
 
     except KeyboardInterrupt:
         pass

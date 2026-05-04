@@ -8,6 +8,7 @@ SELECT
     job_id::VARCHAR                         AS job_id,
     title::VARCHAR                          AS title,
     company::VARCHAR                        AS company,
+    source::VARCHAR                         AS source,
 
     -- urls
     url::VARCHAR                            AS url,
@@ -19,7 +20,7 @@ SELECT
     location::VARCHAR                       AS location,
     experience::VARCHAR                     AS experience,
 
-    -- arrays (giữ nguyên hoặc convert tùy engine)
+    -- arrays
     tags                                    AS tags,
     working_times                           AS working_times,
 
