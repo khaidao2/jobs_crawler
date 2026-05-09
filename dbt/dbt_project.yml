@@ -6,7 +6,7 @@ profile: 'job_lakehouse'
 
 model-paths: ["models"]
 target-path: "target"
-packages-install-path: "/home/airflow/.dbt/packages"
+packages-install-path: "dbt_packages"
 
 models:
   job_lakehouse:

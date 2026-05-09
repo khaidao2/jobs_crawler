@@ -8,7 +8,7 @@ import threading
 import logging
 from typing import Any, Dict
 
-from kafka_producer import KafkaProducer
+from src.kafka.kafka_producer import KafkaProducer
 _LOG = logging.getLogger(__name__)
 
 class KafkaSink:

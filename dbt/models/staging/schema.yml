@@ -8,6 +8,12 @@ models:
         description: "Unique identifier for the job"
         tests:
           - not_null
+      - name: source
+        description: "Origin site (topcv or topdev)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['topcv', 'topdev']
       - name: crawled_at
         description: "Timestamp when the job was crawled"
         tests:

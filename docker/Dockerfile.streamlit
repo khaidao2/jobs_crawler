@@ -1,0 +1,15 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir streamlit duckdb pandas plotly psycopg2-binary sqlalchemy
+
+COPY scripts/app.py .
+COPY scripts/dashboard.py .
+
+ENV STREAMLIT_SERVER_PORT=8501
+ENV STREAMLIT_SERVER_HEADLESS=true
+
+EXPOSE 8501
+
+CMD ["streamlit", "run", "dashboard.py", "--server.port", "8501", "--server.headless", "true"]

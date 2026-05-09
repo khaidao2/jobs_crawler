@@ -8,8 +8,8 @@
   
     as (
       SELECT DISTINCT
-    md5(cast(coalesce(cast(company as TEXT), '_dbt_utils_surrogate_key_null_') as TEXT)) AS company_id,
-    company AS company_name
+    MD5(COALESCE(company, 'unknown'))::VARCHAR AS company_id,
+    COALESCE(company, 'Unknown')::VARCHAR AS company_name
 FROM "job_lakehouse"."main"."int_jobs_dedup"
     );
   

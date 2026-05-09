@@ -10,3 +10,4 @@ authlib
 joserfc
 confluent-kafka[avro]
 s3fs
+pyyaml

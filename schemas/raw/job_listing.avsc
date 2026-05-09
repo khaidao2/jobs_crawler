@@ -24,6 +24,12 @@
     { "name": "job_benefit", "type": ["null", "string"], "default": null },
     { "name": "deadline", "type": ["null", "string"], "default": null },
     { "name": "working_times", "type": {"type": "array", "items": "string"}, "default": [] },
+    { "name": "salary_min", "type": ["null", "float"], "default": null },
+    { "name": "salary_max", "type": ["null", "float"], "default": null },
+    { "name": "deal_salary", "type": "boolean", "default": false },
+    { "name": "experience_min", "type": ["null", "int"], "default": null },
+    { "name": "experience_max", "type": ["null", "int"], "default": null },
+    { "name": "experience_not_mentioned", "type": "boolean", "default": false },
     { "name": "crawled_at", "type": "long", "default": 0 },
     { "name": "source", "type": "string", "default": "unknown" }
   ]

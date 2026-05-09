@@ -3,12 +3,12 @@ job_lakehouse:
   outputs:
     dev:
       type: duckdb
-      path: job_lakehouse.duckdb # Dữ liệu đích sẽ lưu vào file này
+      path: job_lakehouse.duckdb
       extensions:
         - httpfs
         - parquet
       settings:
-        s3_endpoint: minio:9000
+        s3_endpoint: localhost:9000
         s3_access_key_id: "{{ env_var('MINIO_USER', 'admin') }}"
         s3_secret_access_key: "{{ env_var('MINIO_PASSWORD', 'changeme123') }}"
         s3_url_style: path

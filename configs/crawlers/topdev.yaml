@@ -1,30 +1,50 @@
 name: "topdev"
+
 base_url: "https://topdev.vn"
-list_url_template: "https://topdev.vn/jobs/search?job_categories_ids=2%2C3%2C4%2C5%2C6%2C7%2C8%2C9%2C10%2C11%2C12%2C13%2C67&page={page}"
-container_selector: "div.text-card-foreground"
+
+list_url_template: "https://topdev.vn/jobs/search?job_categories_ids=2,3,4,5,6,7,8,9,10,11,12,13,67&page={page}"
+
+# Chọn đúng job card
+container_selector: "div.text-card-foreground.shadow"
 
 fields:
+
   job_id:
-    selector: "a[href*='/viec-lam/'], a[href*='/detail-jobs/']"
-    attribute: "href" # Sẽ xử lý lấy ID từ URL trong bước hậu xử lý nếu cần
-  title:
-    selector: "a[href*='/viec-lam/'], a[href*='/detail-jobs/']"
-    attribute: "text"
-  company:
-    selector: "span.text-text-500"
-    attribute: "text"
-  url:
-    selector: "a[href*='/viec-lam/'], a[href*='/detail-jobs/']"
+    selector: "a[href*='/detail-jobs/']"
     attribute: "href"
+
+  title:
+    selector: "a[href*='/detail-jobs/']"
+    attribute: "text"
+
+  company:
+    selector: "a[href*='/detail-jobs/'] + span"
+    attribute: "text"
+
+  url:
+    selector: "a[href*='/detail-jobs/']"
+    attribute: "href"
+
   logo_url:
     selector: "img[alt='job-image']"
     attribute: "src"
+
   salary:
     selector: "span.text-brand-500.font-semibold"
     attribute: "text"
+
   location:
-    selector: "div.grid span.line-clamp-1" 
+    selector: "div.mt-2.grid span:nth-of-type(1), .location"
     attribute: "text"
+
+  experience:
+    selector: "div.mt-2.grid span:nth-of-type(2), .experience"
+    attribute: "text"
+
+  deadline:
+    selector: "span.absolute.bottom-12, .deadline"
+    attribute: "text"
+
   is_flash:
     selector: "div.bg-\\[\\#FFF0F3\\]"
     attribute: "exists"

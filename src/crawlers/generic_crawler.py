@@ -11,13 +11,16 @@ import logging
 import time
 import random
 import argparse
+import hashlib
 from bs4 import BeautifulSoup
 from typing import Any, Dict, Optional, Set
 from curl_cffi.requests import AsyncSession
 from urllib.parse import urlparse, urlunparse
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
+from common.parsers import JobParser
 from crawlers.sink import KafkaSink
 from config import KAFKA_TOPIC, SCHEMA_PATH
 
@@ -70,6 +73,9 @@ class GenericCrawler:
                  concurrency: int = 5):
         with open(config_path, 'r') as f:
             self.config = yaml.safe_load(f)
+        
+        # Khởi tạo parser cho từng platform (Fix #12)
+        self.parser = JobParser(self.config.get('name', 'unknown'))
 
         self.sink = sink
         # Fix #5: Load schema-driven defaults once at startup
@@ -105,8 +111,12 @@ class GenericCrawler:
                 async with self.semaphore:
                     # Fix #7: Random jitter delay
                     await asyncio.sleep(random.uniform(0.5, 2.0))
+                    # Fix #9: Rotate User-Agent per request to minimize blocking
+                    headers = dict(self.base_headers)
+                    headers["User-Agent"] = random.choice(USER_AGENTS)
+                    
                     _logger.info(f"Fetching (attempt {attempt + 1}): {url}")
-                    response = await session.get(url, headers=self.base_headers, timeout=30)
+                    response = await session.get(url, headers=headers, timeout=30)
                     response.raise_for_status()
                     return response.text
             except Exception as e:
@@ -126,6 +136,10 @@ class GenericCrawler:
         """Parse a single job card using YAML field definitions."""
         # Start with schema defaults (Fix #5)
         data = dict(self.schema_defaults)
+        
+        # Add metadata (Fix #11)
+        data['crawled_at'] = int(time.time())
+        data['source'] = self.config.get('name', 'unknown')
 
         for field_name, rules in self.config['fields'].items():
             selector = rules.get('selector')
@@ -136,7 +150,8 @@ class GenericCrawler:
             if not element:
                 if attr == 'exists':
                     data[field_name] = False
-                # Else: keep schema default
+                elif field_name in ('title', 'company'):
+                    _logger.warning(f"Could not find required field '{field_name}' using selector: {selector}")
                 continue
 
             if attr == 'text':
@@ -154,16 +169,42 @@ class GenericCrawler:
         # Fix #3: Ensure job_id is never None and is clean
         if not data.get('job_id'):
             data['job_id'] = data.get('url') or f"{self.config['name']}_{int(time.time())}_{random.randint(1000,9999)}"
-        
+
         # Clean job_id if it's a URL (fixes TopDev tracking params issue)
         if isinstance(data['job_id'], str) and data['job_id'].startswith('http'):
             data['job_id'] = self._clean_url(data['job_id'])
+            # Extract numeric ID from URL (e.g., .../job-name-2102239 -> 2102239)
+            if '/detail-jobs/' in data['job_id'] or '/viec-lam/' in data['job_id']:
+                parts = data['job_id'].rstrip('/').split('-')
+                if parts and parts[-1].isdigit():
+                    data['job_id'] = parts[-1]
+
+        # Post-process company: if empty but have URL, try to extract from URL
+        if not data.get('company') and data.get('url'):
+            url = data['url']
+            if '/detail-jobs/' in url:
+                # URL format: .../company-name-JOBID - try to extract company from URL path
+                parts = url.split('/detail-jobs/')[-1].rstrip('/').split('-')
+                # Remove last part (job ID) and join the rest as company name
+                if len(parts) > 1:
+                    data['company'] = ' '.join(parts[:-1]).replace('-', ' ').title()
 
         # Fix TopDev TypeError: coerce None → "" for non-nullable Avro string fields
         for field_name in self.required_strings:
             if data.get(field_name) is None:
                 data[field_name] = ""
 
+        # Post-processing: Generate stable job_id from SHA256 of URL (Fix #13)
+        if data.get('url'):
+            # Clean URL to ensure consistent hashes
+            clean_url = self._clean_url(data['url'])
+            # Generate SHA256 hash
+            data['job_id'] = hashlib.sha256(clean_url.encode('utf-8')).hexdigest()
+        
+        # Post-processing: Parse salary and experience (Fix #12)
+        parsed_fields = self.parser.parse(data)
+        data.update(parsed_fields)
+            
         return data
 
     async def fetch_and_parse(self, session: AsyncSession, url: str) -> tuple[int, str, int]:

@@ -1,4 +1,4 @@
 SELECT DISTINCT
-    {{ dbt_utils.generate_surrogate_key(['company']) }} AS company_id,
-    company AS company_name
+    MD5(COALESCE(company, 'unknown'))::VARCHAR AS company_id,
+    COALESCE(company, 'Unknown')::VARCHAR AS company_name
 FROM {{ ref('int_jobs_dedup') }}

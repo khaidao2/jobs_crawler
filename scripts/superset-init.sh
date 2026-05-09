@@ -11,7 +11,7 @@ superset fab create-admin \
               --email admin@superset.com \
               --password admin
 
-# Khởi tạo các vai trò và quyền hạn
+# Khởi tạo các vai trò và quyền hạn 
 superset init
 
 # Chạy server Superset

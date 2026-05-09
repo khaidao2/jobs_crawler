@@ -14,8 +14,8 @@ from src.config import (
     MINIO_SECRET_KEY,
     MINIO_BUCKET_NAME
 )
-from src.kafka_consumer import KafkaConsumer
-from src.crawlers.receive_sink.minio_sink import MinIOSink
+from src.kafka.kafka_consumer import KafkaConsumer
+from src.sinks.minio_sink import MinIOSink
 
 # Setup logging for easy monitoring
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -65,15 +65,19 @@ def main():
             record = consumer_client.poll_messages(timeout=1.0)
             
             if record:
-                # Append data to MinIO Sink
-                batch_flushed = minio_sink.append(record, run_id=current_run_id)
-                
-                # If the sink flushed the batch to MinIO successfully
-                if batch_flushed:
-                    # Commit the offset to Kafka
-                    consumer_client.commit()
-                    _logger.info("Successfully committed batch offset to Kafka.")
-                    last_flush_time = time.time()
+                try:
+                    # Append data to MinIO Sink
+                    batch_flushed = minio_sink.append(record, run_id=current_run_id)
+                    
+                    # If the sink flushed the batch to MinIO successfully
+                    if batch_flushed:
+                        # Commit the offset to Kafka
+                        consumer_client.commit()
+                        _logger.info("Successfully committed batch offset to Kafka.")
+                        last_flush_time = time.time()
+                except Exception as rec_err:
+                    _logger.error(f"Error processing record from Kafka: {rec_err}. Skipping to next...")
+                    continue
             else:
                 # Idle time check: if buffer has data and hasn't been flushed for 30s
                 if len(minio_sink.buffer) > 0 and (time.time() - last_flush_time > 30):

@@ -45,7 +45,7 @@ class MinIOSink:
                 f"/batch_hour={time.strftime('%H', time.localtime(timestamp))}"
                 f"/batch_minute={time.strftime('%M', time.localtime(timestamp))}"
                 f"/batch_second={time.strftime('%S', time.localtime(timestamp))}"
-                f"/{run_id}_{suffix}.parquet"
+                f"/run_id={run_id}_{suffix}.parquet"
             )
             _LOGGER.debug(f"Built path: {path}")
             return path

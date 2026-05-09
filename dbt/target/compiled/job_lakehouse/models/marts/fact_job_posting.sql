@@ -2,10 +2,12 @@
 
 SELECT
     job_id,
-    md5(cast(coalesce(cast(company as TEXT), '_dbt_utils_surrogate_key_null_') as TEXT)) AS company_id,
+    company,
+    salary_min,
+    salary_max,
+    deal_salary,
+    experience_min,
+    experience_max,
+    experience_not_mentioned,
     crawled_at
-FROM "job_lakehouse"."main"."int_jobs_dedup"
-
-
-  -- Chỉ lấy những job được cào sau thời điểm mới nhất hiện có trong bảng Fact
-  WHERE crawled_at > (SELECT MAX(crawled_at) FROM "job_lakehouse"."main"."fact_job_posting")
+FROM "job_lakehouse"."main"."stg_jobs"
