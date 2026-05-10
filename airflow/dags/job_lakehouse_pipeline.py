@@ -37,7 +37,12 @@ with DAG(
 
     dbt_run = BashOperator(
         task_id='dbt_run',
-        bash_command='cd /opt/airflow/dbt && dbt run --profiles-dir .',
+        bash_command='cd /opt/airflow/dbt && /home/airflow/.local/bin/dbt run --profiles-dir .',
+        env={
+            'HOME': '/home/airflow',
+            'MINIO_USER': 'admin',
+            'MINIO_PASSWORD': 'changeme123',
+        },
     )
 
     [run_topcv_crawler, run_topdev_crawler] >> wait_for_ingestion >> dbt_run

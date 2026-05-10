@@ -155,29 +155,67 @@ elif menu == "🏢 Companies":
 
 # ==================== ANALYTICS ====================
 elif menu == "📊 Analytics":
-    st.title("📊 Analytics")
+    st.title("📊 Data Analytics")
     
     try:
         conn = get_connection()
-        st.subheader("Company Distribution")
-        
-        df_companies = conn.execute("SELECT * FROM dim_company").fetchdf()
+        df = conn.execute("SELECT * FROM fact_job_posting").fetchdf()
         conn.close()
         
-        if len(df_companies) > 0:
-            fig = px.bar(
-                df_companies.head(20),
-                x='company_name',
-                y=[1]*len(df_companies.head(20)),
-                title="Top 20 Companies"
-            )
-            fig.update_layout(yaxis_title="Count")
-            st.plotly_chart(fig, use_container_width=True)
+        if len(df) > 0:
+            tab1, tab2, tab3 = st.tabs(["💰 Salary", "⏳ Experience", "🏢 Companies"])
+            
+            with tab1:
+                st.subheader("💰 Salary Analysis")
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    # Filter out nulls for distribution
+                    salary_df = df[df['salary_min'].notnull()]
+                    if not salary_df.empty:
+                        fig = px.histogram(salary_df, x="salary_min", nbins=20, 
+                                         title="Salary Min Distribution (VND)",
+                                         labels={'salary_min': 'Min Salary'},
+                                         color_discrete_sequence=['#2ecc71'])
+                        st.plotly_chart(fig, use_container_width=True)
+                
+                with col2:
+                    salary_max_df = df[df['salary_max'].notnull()]
+                    if not salary_max_df.empty:
+                        fig = px.box(salary_max_df, x="source", y="salary_max", 
+                                   title="Salary Max by Platform",
+                                   color="source")
+                        st.plotly_chart(fig, use_container_width=True)
+                
+                st.info(f"Jobs with negotiable salary: {df[df['deal_salary'] == True].shape[0]}")
+
+            with tab2:
+                st.subheader("⏳ Experience Requirements")
+                exp_df = df[df['experience_min'].notnull()]
+                if not exp_df.empty:
+                    fig = px.bar(exp_df.groupby('experience_min').size().reset_index(name='count'), 
+                               x='experience_min', y='count',
+                               title="Jobs by Minimum Experience (Years)",
+                               labels={'experience_min': 'Years', 'count': 'Number of Jobs'})
+                    st.plotly_chart(fig, use_container_width=True)
+                
+                st.info(f"Jobs with no experience mentioned: {df[df['experience_not_mentioned'] == True].shape[0]}")
+
+            with tab3:
+                st.subheader("🏢 Top Companies")
+                top_cos = df['company'].value_counts().head(15).reset_index()
+                top_cos.columns = ['company', 'count']
+                fig = px.bar(top_cos, x='count', y='company', orientation='h', 
+                           title="Top 15 Hiring Companies",
+                           color='count', color_continuous_scale='Viridis')
+                st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("No data available for analytics. Run the crawler first!")
         
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Error loading analytics: {e}")
     finally:
-        conn.close()
+        if 'conn' in locals(): conn.close()
 
 # ==================== QUERY TOOL ====================
 elif menu == "🔍 Query Tool":
@@ -240,10 +278,10 @@ elif menu == "🔍 Query Tool":
             
             # Schema
             with st.expander("📋 Result Schema"):
-                st.table(result.dtypes.apply(lambda x: pd.Series({
-                    'Column': x.name, 
-                    'Type': str(x.dtype)
-                })))
+                st.table(pd.DataFrame({
+                    'Column': result.dtypes.index,
+                    'Type': result.dtypes.astype(str)
+                }))
                 
         except Exception as e:
             st.error(f"❌ Error: {e}")
