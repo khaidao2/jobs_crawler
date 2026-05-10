@@ -86,3 +86,9 @@ volumes/
 # =====================
 *.duckdb
 *.duckd
+# =====================
+# dbt
+# =====================
+dbt/target/
+dbt/logs/
+dbt/.user.yml
