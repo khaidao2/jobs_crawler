@@ -29,14 +29,14 @@ st.markdown("""
 # Database connection function
 def get_connection():
     conn = duckdb.connect(DB_PATH, read_only=True)
-    # Configure S3/MinIO access
+    # Configure S3/MinIO access using parameterized settings
     try:
-        conn.execute(f"SET s3_access_key_id='{S3_KEY}'")
-        conn.execute(f"SET s3_secret_access_key='{S3_SECRET}'")
-        conn.execute(f"SET s3_endpoint='{S3_ENDPOINT}'")
-        conn.execute("SET s3_url_style='path'")
-        conn.execute("SET s3_use_ssl='false'")
-    except:
+        conn.execute("SET s3_access_key_id = ?", [S3_KEY])
+        conn.execute("SET s3_secret_access_key = ?", [S3_SECRET])
+        conn.execute("SET s3_endpoint = ?", [S3_ENDPOINT])
+        conn.execute("SET s3_url_style = 'path'")
+        conn.execute("SET s3_use_ssl = 'false'")
+    except Exception:
         pass
     return conn
 
@@ -108,6 +108,7 @@ if menu == "📈 Overview":
 elif menu == "💼 Jobs":
     st.title("💼 Job Postings")
     
+    conn = None
     try:
         conn = get_connection()
         df = conn.execute("SELECT * FROM fact_job_posting ORDER BY crawled_at DESC").fetchdf()
@@ -124,7 +125,8 @@ elif menu == "💼 Jobs":
     except Exception as e:
         st.error(f"Error: {e}")
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 # ==================== COMPANIES ====================
 elif menu == "🏢 Companies":

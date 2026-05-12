@@ -71,10 +71,13 @@ def main():
                     
                     # If the sink flushed the batch to MinIO successfully
                     if batch_flushed:
-                        # Commit the offset to Kafka
+                        # Commit the offset to Kafka only after successful flush
                         consumer_client.commit()
                         _logger.info("Successfully committed batch offset to Kafka.")
                         last_flush_time = time.time()
+                    else:
+                        # Record added to buffer but not flushed yet - don't commit
+                        pass
                 except Exception as rec_err:
                     _logger.error(f"Error processing record from Kafka: {rec_err}. Skipping to next...")
                     continue

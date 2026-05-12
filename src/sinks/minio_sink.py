@@ -27,7 +27,7 @@ class MinIOSink:
             )
             
             if not self.s3.exists(self.bucket_name):
-                _LOGGER.info(f"Bucket '{self.bucket_name}' chưa tồn tại. Đang tự động tạo mới...")
+                _LOGGER.info(f"Bucket '{self.bucket_name}' does not exist. Creating...")
                 self.s3.mkdir(self.bucket_name)
 
             _LOGGER.info(f"MinIOSink ready | bucket={self.bucket_name} | batch_size={self.batch_size}")

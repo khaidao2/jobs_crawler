@@ -37,8 +37,8 @@ USER_AGENTS = [
 
 
 def _load_schema_defaults(schema_path: str) -> tuple:
-    """Fix #5: Load Avro schema to auto-fill missing fields (Schema-Driven Mapping).
-    Returns (defaults dict, required_string_fields set)
+    """Load Avro schema to auto-fill missing fields.
+    Returns (defaults dict, required_string_fields set).
     """
     defaults = {}
     required_strings = set()  # Fields that MUST be a string (non-nullable)
@@ -74,13 +74,11 @@ class GenericCrawler:
         with open(config_path, 'r') as f:
             self.config = yaml.safe_load(f)
         
-        # Khởi tạo parser cho từng platform (Fix #12)
+        # Initialize platform-specific parser
         self.parser = JobParser(self.config.get('name', 'unknown'))
 
         self.sink = sink
-        # Fix #5: Load schema-driven defaults once at startup
         self.schema_defaults, self.required_strings = _load_schema_defaults(schema_path)
-        # Fix #2: Semaphore for rate limiting
         self.semaphore = asyncio.Semaphore(concurrency)
         
         # Track seen IDs during this run to detect redundancy/loops
@@ -103,15 +101,11 @@ class GenericCrawler:
         self.impersonate = self.config.get('impersonate', 'chrome120')
 
     async def fetch_page(self, session: AsyncSession, url: str) -> str:
-        """Fix #4: Retry with exponential backoff. Fix #2: Rate-limited via semaphore.
-        Uses curl_cffi to impersonate Chrome TLS fingerprint — bypasses bot detection.
-        """
+        """Fetch page with retry and rate limiting using curl_cffi for Chrome TLS impersonation."""
         for attempt in range(3):
             try:
                 async with self.semaphore:
-                    # Fix #7: Random jitter delay
                     await asyncio.sleep(random.uniform(0.5, 2.0))
-                    # Fix #9: Rotate User-Agent per request to minimize blocking
                     headers = dict(self.base_headers)
                     headers["User-Agent"] = random.choice(USER_AGENTS)
                     
@@ -134,10 +128,8 @@ class GenericCrawler:
 
     def parse_item(self, container: BeautifulSoup) -> Dict[str, Any]:
         """Parse a single job card using YAML field definitions."""
-        # Start with schema defaults (Fix #5)
         data = dict(self.schema_defaults)
-        
-        # Add metadata (Fix #11)
+
         data['crawled_at'] = int(time.time())
         data['source'] = self.config.get('name', 'unknown')
 
@@ -166,42 +158,25 @@ class GenericCrawler:
             else:
                 data[field_name] = element.get(attr)
 
-        # Fix #3: Ensure job_id is never None and is clean
-        if not data.get('job_id'):
-            data['job_id'] = data.get('url') or f"{self.config['name']}_{int(time.time())}_{random.randint(1000,9999)}"
-
-        # Clean job_id if it's a URL (fixes TopDev tracking params issue)
-        if isinstance(data['job_id'], str) and data['job_id'].startswith('http'):
-            data['job_id'] = self._clean_url(data['job_id'])
-            # Extract numeric ID from URL (e.g., .../job-name-2102239 -> 2102239)
-            if '/detail-jobs/' in data['job_id'] or '/viec-lam/' in data['job_id']:
-                parts = data['job_id'].rstrip('/').split('-')
-                if parts and parts[-1].isdigit():
-                    data['job_id'] = parts[-1]
+        # Generate stable job_id using SHA256 hash of URL
+        if data.get('url'):
+            clean_url = self._clean_url(data['url'])
+            data['job_id'] = hashlib.sha256(clean_url.encode('utf-8')).hexdigest()
+        else:
+            data['job_id'] = f"{self.config['name']}_{int(time.time())}_{random.randint(1000,9999)}"
 
         # Post-process company: if empty but have URL, try to extract from URL
         if not data.get('company') and data.get('url'):
             url = data['url']
             if '/detail-jobs/' in url:
-                # URL format: .../company-name-JOBID - try to extract company from URL path
                 parts = url.split('/detail-jobs/')[-1].rstrip('/').split('-')
-                # Remove last part (job ID) and join the rest as company name
                 if len(parts) > 1:
                     data['company'] = ' '.join(parts[:-1]).replace('-', ' ').title()
 
-        # Fix TopDev TypeError: coerce None → "" for non-nullable Avro string fields
         for field_name in self.required_strings:
             if data.get(field_name) is None:
                 data[field_name] = ""
 
-        # Post-processing: Generate stable job_id from SHA256 of URL (Fix #13)
-        if data.get('url'):
-            # Clean URL to ensure consistent hashes
-            clean_url = self._clean_url(data['url'])
-            # Generate SHA256 hash
-            data['job_id'] = hashlib.sha256(clean_url.encode('utf-8')).hexdigest()
-        
-        # Post-processing: Parse salary and experience (Fix #12)
         parsed_fields = self.parser.parse(data)
         data.update(parsed_fields)
             
@@ -221,7 +196,6 @@ class GenericCrawler:
             new_items_count = 0
             for item in items:
                 job_data = self.parse_item(item)
-                # Fix #3: Fallback key from url if job_id still missing
                 key = job_data.get('job_id') or job_data.get('url')
                 jid = str(key)
                 current_job_ids.append(jid)

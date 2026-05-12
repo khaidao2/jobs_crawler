@@ -35,6 +35,6 @@ SCHEMA_PATH = os.getenv("SCHEMA_PATH", str(BASE_DIR / "schemas" / "raw" / "job_l
 
 
 MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "http://localhost:9000")
-MINIO_ACCESS_KEY = os.getenv("MINIO_USER", "admin")
-MINIO_SECRET_KEY = os.getenv("MINIO_PASSWORD", "changeme123")
+MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", os.getenv("MINIO_USER", "admin"))
+MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", os.getenv("MINIO_PASSWORD", "changeme123"))
 MINIO_BUCKET_NAME = os.getenv("MINIO_BUCKET_NAME", "job-postings-raw")
