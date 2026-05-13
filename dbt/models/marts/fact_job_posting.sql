@@ -11,3 +11,4 @@ SELECT
     experience_not_mentioned,
     crawled_at
 FROM {{ ref('stg_jobs') }}
+WHERE job_id IS NOT NULL

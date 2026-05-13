@@ -92,3 +92,5 @@ volumes/
 dbt/target/
 dbt/logs/
 dbt/.user.yml
+
+scratch/
