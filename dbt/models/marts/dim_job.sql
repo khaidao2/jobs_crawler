@@ -1,3 +1,3 @@
 {{ config(materialized='view') }}
 
-SELECT * FROM {{ ref('stg_jobs') }}
+SELECT * FROM {{ ref('int_jobs_dedup') }}

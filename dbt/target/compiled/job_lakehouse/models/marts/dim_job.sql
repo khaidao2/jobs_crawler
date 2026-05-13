@@ -1,3 +1,3 @@
 
 
-SELECT * FROM "job_lakehouse"."main"."stg_jobs"
+SELECT * FROM "job_lakehouse"."main"."int_jobs_dedup"

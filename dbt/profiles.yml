@@ -1,5 +1,4 @@
 job_lakehouse:
-  target: dev
   outputs:
     dev:
       type: duckdb
@@ -13,3 +12,18 @@ job_lakehouse:
         s3_secret_access_key: changeme123
         s3_url_style: path
         s3_use_ssl: false
+
+    local_dev:
+      type: duckdb
+      path: job_lakehouse.duckdb
+      extensions:
+        - httpfs
+        - parquet
+      settings:
+        s3_endpoint: localhost:9000
+        s3_access_key_id: admin
+        s3_secret_access_key: changeme123
+        s3_url_style: path
+        s3_use_ssl: false
+
+  target: dev
