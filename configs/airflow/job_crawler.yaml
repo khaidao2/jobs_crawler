@@ -1,0 +1,41 @@
+dag:
+  id: job_crawler
+  description: Crawl job listings from TopCV and TopDev
+  schedule: "@daily"
+  owner: airflow
+  retries: 1
+  retry_delay_minutes: 5
+  tasks:
+    - id: crawl_topcv
+      operator: PythonOperator
+      function: src.airflow.operators.crawler_operators.run_crawler
+      config:
+        source: topcv
+        config_path: /opt/airflow/configs/crawlers/topcv.yaml
+        max_pages: 0
+
+    - id: crawl_topdev
+      operator: PythonOperator
+      function: src.airflow.operators.crawler_operators.run_crawler
+      config:
+        source: topdev
+        config_path: /opt/airflow/configs/crawlers/topdev.yaml
+        max_pages: 0
+
+    - id: dbt_run
+      operator: BashOperator
+      command: "cd /opt/airflow/dbt && /home/airflow/.local/bin/dbt run --profiles-dir ."
+      env:
+        HOME: /home/airflow
+        MINIO_USER: admin
+        MINIO_PASSWORD: changeme123
+        DUCKDB_FILE: /opt/airflow/dbt/job_lakehouse.duckdb
+
+    - id: dbt_test
+      operator: BashOperator
+      command: "cd /opt/airflow/dbt && /home/airflow/.local/bin/dbt test --profiles-dir ."
+      env:
+        HOME: /home/airflow
+
+  dependencies:
+    - [[crawl_topcv, crawl_topdev], dbt_run, dbt_test]
